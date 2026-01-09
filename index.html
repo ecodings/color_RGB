@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RGB 채널 실수배 합성</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: #f0f0f0;
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 26px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 25px;
+            font-size: 14px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'Noto Sans KR', sans-serif;
+            transition: all 0.2s ease;
+        }
+
+        .btn-upload {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-upload:hover {
+            background: #5a6fd6;
+        }
+
+        .btn-sample {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-sample:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-reset {
+            background: #666;
+            color: white;
+        }
+
+        .btn-reset:hover {
+            background: #555;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* 메인 이미지 영역 */
+        .images-main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .image-box {
+            background: #fff;
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid #ddd;
+        }
+
+        .image-box h3 {
+            text-align: center;
+            margin-bottom: 12px;
+            font-size: 15px;
+            color: #333;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f9f9f9;
+            min-height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .canvas-wrapper canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            cursor: crosshair;
+        }
+
+        .placeholder {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .selection-box {
+            position: absolute;
+            border: 2px solid #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+            pointer-events: none;
+            display: none;
+        }
+
+        /* 슬라이더 영역 */
+        .sliders-section {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            margin-bottom: 25px;
+        }
+
+        .sliders-title {
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+
+        .slider-label {
+            width: 80px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .slider-label.red { color: #dc3545; }
+        .slider-label.green { color: #28a745; }
+        .slider-label.blue { color: #007bff; }
+
+        .slider-input {
+            flex: 1;
+            height: 8px;
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider-input.red {
+            background: linear-gradient(to right, #ffcccc, #ff0000);
+        }
+
+        .slider-input.green {
+            background: linear-gradient(to right, #ccffcc, #00ff00);
+        }
+
+        .slider-input.blue {
+            background: linear-gradient(to right, #ccccff, #0000ff);
+        }
+
+        .slider-input::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .slider-input.red::-webkit-slider-thumb {
+            background: #dc3545;
+        }
+
+        .slider-input.green::-webkit-slider-thumb {
+            background: #28a745;
+        }
+
+        .slider-input.blue::-webkit-slider-thumb {
+            background: #007bff;
+        }
+
+        .slider-value {
+            width: 50px;
+            text-align: right;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .lock-option {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .lock-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .lock-option label {
+            font-size: 14px;
+            cursor: pointer;
+            color: #555;
+        }
+
+        .formula-display {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            color: #333;
+        }
+
+        /* 채널 행렬 영역 */
+        .channels-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .channels-column {
+            background: #fff;
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid #ddd;
+        }
+
+        .channels-column h3 {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 15px;
+            color: #333;
+        }
+
+        .channel-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .channel-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .channel-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .channel-preview canvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .channel-label {
+            writing-mode: vertical-rl;
+            text-orientation: upright;
+            font-weight: 700;
+            font-size: 14px;
+            padding: 5px 3px;
+            border-radius: 4px;
+            letter-spacing: 2px;
+        }
+
+        .channel-label.red { color: #dc3545; background: #ffe5e5; }
+        .channel-label.green { color: #28a745; background: #e5ffe5; }
+        .channel-label.blue { color: #007bff; background: #e5e5ff; }
+
+        .matrix-table {
+            flex: 1;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+        }
+
+        .matrix-table td {
+            width: 28px;
+            height: 28px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+        .matrix-table.red td { background: #fff0f0; color: #cc0000; }
+        .matrix-table.green td { background: #f0fff0; color: #008800; }
+        .matrix-table.blue td { background: #f0f0ff; color: #0000cc; }
+
+        .matrix-table td.center {
+            font-weight: bold;
+            box-shadow: inset 0 0 0 2px #333;
+        }
+
+        @media (max-width: 900px) {
+            .images-main,
+            .channels-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 RGB 채널 실수배 합성</h1>
+        <p class="subtitle">rR + gG + bB 연산으로 이미지 색상 변환하기</p>
+
+        <div class="controls">
+            <label class="btn btn-upload">
+                📁 이미지 업로드
+                <input type="file" id="imageInput" accept="image/*">
+            </label>
+            <button class="btn btn-sample" onclick="loadSampleImage()">🖼️ 샘플 이미지</button>
+            <button class="btn btn-reset" onclick="resetAll()">↺ 초기화</button>
+        </div>
+
+        <!-- 메인 이미지 -->
+        <div class="images-main">
+            <div class="image-box">
+                <h3>📷 원본 이미지</h3>
+                <div class="canvas-wrapper" id="originalWrapper">
+                    <canvas id="originalCanvas" style="display:none;"></canvas>
+                    <div class="placeholder" id="placeholder1">이미지를 업로드하거나 샘플을 선택하세요</div>
+                    <div class="selection-box" id="selectionBox1"></div>
+                </div>
+            </div>
+            <div class="image-box">
+                <h3 id="resultTitle">🔄 합성 이미지 (rR + gG + bB)</h3>
+                <div class="canvas-wrapper" id="transformedWrapper">
+                    <canvas id="transformedCanvas" style="display:none;"></canvas>
+                    <div class="placeholder" id="placeholder2">이미지를 업로드하거나 샘플을 선택하세요</div>
+                    <div class="selection-box" id="selectionBox2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 슬라이더 -->
+        <div class="sliders-section">
+            <div class="sliders-title">⚙️ 채널별 실수배 조절</div>
+            
+            <div class="slider-row">
+                <span class="slider-label red">R (r)</span>
+                <input type="range" class="slider-input red" id="sliderR" min="0" max="200" value="100">
+                <span class="slider-value" id="valueR">1.00</span>
+            </div>
+            
+            <div class="slider-row">
+                <span class="slider-label green">G (g)</span>
+                <input type="range" class="slider-input green" id="sliderG" min="0" max="200" value="100">
+                <span class="slider-value" id="valueG">1.00</span>
+            </div>
+            
+            <div class="slider-row">
+                <span class="slider-label blue">B (b)</span>
+                <input type="range" class="slider-input blue" id="sliderB" min="0" max="200" value="100">
+                <span class="slider-value" id="valueB">1.00</span>
+            </div>
+
+            <div class="lock-option">
+                <input type="checkbox" id="grayscaleCheck">
+                <label for="grayscaleCheck">🔲 흑백 전환 (R, G, B 평균값 사용)</label>
+            </div>
+
+            <div class="formula-display" id="formulaDisplay">
+                결과 = 1.00 × R + 1.00 × G + 1.00 × B
+            </div>
+        </div>
+
+        <!-- 채널별 행렬 -->
+        <div class="channels-section">
+            <div class="channels-column">
+                <h3>📊 원본 채널</h3>
+                
+                <div class="channel-row">
+                    <div class="channel-label red">R</div>
+                    <div class="channel-preview"><canvas id="channelR"></canvas></div>
+                    <table class="matrix-table red" id="matrixR"></table>
+                </div>
+                
+                <div class="channel-row">
+                    <div class="channel-label green">G</div>
+                    <div class="channel-preview"><canvas id="channelG"></canvas></div>
+                    <table class="matrix-table green" id="matrixG"></table>
+                </div>
+                
+                <div class="channel-row">
+                    <div class="channel-label blue">B</div>
+                    <div class="channel-preview"><canvas id="channelB"></canvas></div>
+                    <table class="matrix-table blue" id="matrixB"></table>
+                </div>
+            </div>
+
+            <div class="channels-column">
+                <h3 id="resultChannelTitle">📊 변환된 채널 (실수배 적용)</h3>
+                
+                <div class="channel-row">
+                    <div class="channel-label red" id="labelR2">rR</div>
+                    <div class="channel-preview"><canvas id="channelR2"></canvas></div>
+                    <table class="matrix-table red" id="matrixR2"></table>
+                </div>
+                
+                <div class="channel-row">
+                    <div class="channel-label green" id="labelG2">gG</div>
+                    <div class="channel-preview"><canvas id="channelG2"></canvas></div>
+                    <table class="matrix-table green" id="matrixG2"></table>
+                </div>
+                
+                <div class="channel-row">
+                    <div class="channel-label blue" id="labelB2">bB</div>
+                    <div class="channel-preview"><canvas id="channelB2"></canvas></div>
+                    <table class="matrix-table blue" id="matrixB2"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 캔버스 및 컨텍스트
+        const originalCanvas = document.getElementById('originalCanvas');
+        const transformedCanvas = document.getElementById('transformedCanvas');
+        const originalCtx = originalCanvas.getContext('2d');
+        const transformedCtx = transformedCanvas.getContext('2d');
+
+        // 채널 캔버스
+        const channelCanvases = {
+            R: document.getElementById('channelR'),
+            G: document.getElementById('channelG'),
+            B: document.getElementById('channelB'),
+            R2: document.getElementById('channelR2'),
+            G2: document.getElementById('channelG2'),
+            B2: document.getElementById('channelB2')
+        };
+
+        // 슬라이더
+        const sliderR = document.getElementById('sliderR');
+        const sliderG = document.getElementById('sliderG');
+        const sliderB = document.getElementById('sliderB');
+        const grayscaleCheck = document.getElementById('grayscaleCheck');
+
+        // 상태
+        let originalImageData = null;
+        let selectedX = null;
+        let selectedY = null;
+        const boxSize = 7;
+
+        // 이미지 업로드
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        loadImage(img);
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 샘플 이미지
+        function loadSampleImage() {
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.onload = function() {
+                loadImage(img);
+            };
+            img.src = 'sample.jpg';
+        }
+
+        // 이미지 로드
+        function loadImage(img) {
+            const maxWidth = 400;
+            const scale = Math.min(1, maxWidth / img.width);
+            const width = img.width * scale;
+            const height = img.height * scale;
+
+            originalCanvas.width = width;
+            originalCanvas.height = height;
+            transformedCanvas.width = width;
+            transformedCanvas.height = height;
+
+            originalCtx.drawImage(img, 0, 0, width, height);
+            originalImageData = originalCtx.getImageData(0, 0, width, height);
+
+            // 캔버스 표시
+            originalCanvas.style.display = 'block';
+            transformedCanvas.style.display = 'block';
+            document.getElementById('placeholder1').style.display = 'none';
+            document.getElementById('placeholder2').style.display = 'none';
+
+            // 중앙 선택
+            selectedX = Math.floor(width / 2);
+            selectedY = Math.floor(height / 2);
+
+            updateAll();
+        }
+
+        // 초기화
+        function resetAll() {
+            originalImageData = null;
+            selectedX = null;
+            selectedY = null;
+
+            originalCanvas.style.display = 'none';
+            transformedCanvas.style.display = 'none';
+            document.getElementById('placeholder1').style.display = 'block';
+            document.getElementById('placeholder2').style.display = 'block';
+
+            sliderR.value = 100;
+            sliderG.value = 100;
+            sliderB.value = 100;
+            grayscaleCheck.checked = false;
+
+            updateSliderValues();
+            updateLabels();
+            clearMatrices();
+            clearChannelPreviews();
+
+            document.getElementById('selectionBox1').style.display = 'none';
+            document.getElementById('selectionBox2').style.display = 'none';
+        }
+
+        // 슬라이더 이벤트
+        [sliderR, sliderG, sliderB].forEach(slider => {
+            slider.addEventListener('input', function() {
+                if (grayscaleCheck.checked) {
+                    sliderR.value = this.value;
+                    sliderG.value = this.value;
+                    sliderB.value = this.value;
+                }
+                updateSliderValues();
+                updateAll();
+            });
+        });
+
+        grayscaleCheck.addEventListener('change', function() {
+            if (this.checked) {
+                // 흑백 모드: 슬라이더를 1/3로 설정
+                sliderR.value = 33;
+                sliderG.value = 33;
+                sliderB.value = 33;
+            } else {
+                // 컬러 모드: 슬라이더를 1.0으로 복원
+                sliderR.value = 100;
+                sliderG.value = 100;
+                sliderB.value = 100;
+            }
+            updateSliderValues();
+            updateLabels();
+            updateAll();
+        });
+
+        // 라벨 업데이트
+        function updateLabels() {
+            const isGrayscale = grayscaleCheck.checked;
+            
+            if (isGrayscale) {
+                document.getElementById('resultTitle').textContent = '🔲 흑백 이미지 ((R+G+B)/3 × k)';
+                document.getElementById('resultChannelTitle').textContent = '📊 변환된 채널 (평균 × 실수배)';
+            } else {
+                document.getElementById('resultTitle').textContent = '🔄 합성 이미지 (rR + gG + bB)';
+                document.getElementById('resultChannelTitle').textContent = '📊 변환된 채널 (실수배 적용)';
+            }
+            
+            // 라벨은 항상 RGB 색상 유지
+            document.getElementById('labelR2').textContent = 'rR';
+            document.getElementById('labelG2').textContent = 'gG';
+            document.getElementById('labelB2').textContent = 'bB';
+            
+            document.getElementById('labelR2').className = 'channel-label red';
+            document.getElementById('labelG2').className = 'channel-label green';
+            document.getElementById('labelB2').className = 'channel-label blue';
+            
+            // 행렬 테이블도 항상 RGB 색상 유지
+            document.getElementById('matrixR2').className = 'matrix-table red';
+            document.getElementById('matrixG2').className = 'matrix-table green';
+            document.getElementById('matrixB2').className = 'matrix-table blue';
+        }
+
+        // 슬라이더 값 표시
+        function updateSliderValues() {
+            const r = (sliderR.value / 100).toFixed(2);
+            const g = (sliderG.value / 100).toFixed(2);
+            const b = (sliderB.value / 100).toFixed(2);
+
+            document.getElementById('valueR').textContent = r;
+            document.getElementById('valueG').textContent = g;
+            document.getElementById('valueB').textContent = b;
+
+            if (grayscaleCheck.checked) {
+                document.getElementById('formulaDisplay').textContent = 
+                    `결과 = (R + G + B) / 3 × ${r}`;
+            } else {
+                document.getElementById('formulaDisplay').textContent = 
+                    `결과 = ${r} × R + ${g} × G + ${b} × B`;
+            }
+        }
+
+        // 전체 업데이트
+        function updateAll() {
+            if (!originalImageData) return;
+
+            updateTransformedImage();
+            updateChannelPreviews();
+            updateMatrices();
+            updateSelectionBoxes();
+        }
+
+        // 합성 이미지 업데이트
+        function updateTransformedImage() {
+            const r = sliderR.value / 100;
+            const g = sliderG.value / 100;
+            const b = sliderB.value / 100;
+            const isGrayscale = grayscaleCheck.checked;
+
+            const imageData = transformedCtx.createImageData(originalImageData.width, originalImageData.height);
+
+            for (let i = 0; i < originalImageData.data.length; i += 4) {
+                const origR = originalImageData.data[i];
+                const origG = originalImageData.data[i + 1];
+                const origB = originalImageData.data[i + 2];
+
+                if (isGrayscale) {
+                    // 흑백: (R+G+B)/3 평균값에 실수배
+                    const avg = Math.round((origR + origG + origB) / 3 * r);
+                    const clamped = Math.min(255, Math.max(0, avg));
+                    imageData.data[i] = clamped;
+                    imageData.data[i + 1] = clamped;
+                    imageData.data[i + 2] = clamped;
+                } else {
+                    // 컬러: 각 채널별 실수배
+                    imageData.data[i] = Math.min(255, Math.max(0, Math.round(origR * r)));
+                    imageData.data[i + 1] = Math.min(255, Math.max(0, Math.round(origG * g)));
+                    imageData.data[i + 2] = Math.min(255, Math.max(0, Math.round(origB * b)));
+                }
+                imageData.data[i + 3] = originalImageData.data[i + 3];
+            }
+
+            transformedCtx.putImageData(imageData, 0, 0);
+        }
+
+        // 채널 프리뷰 업데이트
+        function updateChannelPreviews() {
+            const r = sliderR.value / 100;
+            const g = sliderG.value / 100;
+            const b = sliderB.value / 100;
+            const isGrayscale = grayscaleCheck.checked;
+
+            // 원본 채널
+            drawChannelPreview('R', 0, 1);
+            drawChannelPreview('G', 1, 1);
+            drawChannelPreview('B', 2, 1);
+
+            // 변환된 채널 - 흑백이든 아니든 각 채널 색상으로 표시
+            if (isGrayscale) {
+                // 흑백: 평균값을 각 채널 색상으로 표시
+                drawGrayscaleChannelPreview('R2', 0, r);
+                drawGrayscaleChannelPreview('G2', 1, r);
+                drawGrayscaleChannelPreview('B2', 2, r);
+            } else {
+                drawChannelPreview('R2', 0, r);
+                drawChannelPreview('G2', 1, g);
+                drawChannelPreview('B2', 2, b);
+            }
+        }
+
+        function drawChannelPreview(canvasId, channelIndex, multiplier) {
+            const canvas = channelCanvases[canvasId];
+            const ctx = canvas.getContext('2d');
+            const width = originalImageData.width;
+            const height = originalImageData.height;
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const imageData = ctx.createImageData(width, height);
+
+            for (let i = 0; i < originalImageData.data.length; i += 4) {
+                const value = Math.min(255, Math.max(0, Math.round(originalImageData.data[i + channelIndex] * multiplier)));
+                
+                if (channelIndex === 0) { // R
+                    imageData.data[i] = value;
+                    imageData.data[i + 1] = 0;
+                    imageData.data[i + 2] = 0;
+                } else if (channelIndex === 1) { // G
+                    imageData.data[i] = 0;
+                    imageData.data[i + 1] = value;
+                    imageData.data[i + 2] = 0;
+                } else { // B
+                    imageData.data[i] = 0;
+                    imageData.data[i + 1] = 0;
+                    imageData.data[i + 2] = value;
+                }
+                imageData.data[i + 3] = 255;
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // 흑백 모드용 채널 프리뷰 (평균값을 해당 채널 색상으로 표시)
+        function drawGrayscaleChannelPreview(canvasId, channelIndex, multiplier) {
+            const canvas = channelCanvases[canvasId];
+            const ctx = canvas.getContext('2d');
+            const width = originalImageData.width;
+            const height = originalImageData.height;
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const imageData = ctx.createImageData(width, height);
+
+            for (let i = 0; i < originalImageData.data.length; i += 4) {
+                const origR = originalImageData.data[i];
+                const origG = originalImageData.data[i + 1];
+                const origB = originalImageData.data[i + 2];
+                const avg = Math.round((origR + origG + origB) / 3 * multiplier);
+                const value = Math.min(255, Math.max(0, avg));
+                
+                // 채널 색상으로 표시
+                if (channelIndex === 0) { // R
+                    imageData.data[i] = value;
+                    imageData.data[i + 1] = 0;
+                    imageData.data[i + 2] = 0;
+                } else if (channelIndex === 1) { // G
+                    imageData.data[i] = 0;
+                    imageData.data[i + 1] = value;
+                    imageData.data[i + 2] = 0;
+                } else { // B
+                    imageData.data[i] = 0;
+                    imageData.data[i + 1] = 0;
+                    imageData.data[i + 2] = value;
+                }
+                imageData.data[i + 3] = 255;
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        function clearChannelPreviews() {
+            Object.values(channelCanvases).forEach(canvas => {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            });
+        }
+
+        // 행렬 업데이트
+        function updateMatrices() {
+            if (!originalImageData || selectedX === null) return;
+
+            const r = sliderR.value / 100;
+            const g = sliderG.value / 100;
+            const b = sliderB.value / 100;
+            const isGrayscale = grayscaleCheck.checked;
+
+            const startX = Math.max(0, Math.min(originalImageData.width - boxSize, selectedX - Math.floor(boxSize / 2)));
+            const startY = Math.max(0, Math.min(originalImageData.height - boxSize, selectedY - Math.floor(boxSize / 2)));
+
+            // 원본 행렬
+            updateMatrix('matrixR', startX, startY, 0, 1);
+            updateMatrix('matrixG', startX, startY, 1, 1);
+            updateMatrix('matrixB', startX, startY, 2, 1);
+
+            // 변환된 행렬
+            if (isGrayscale) {
+                // 흑백: 평균값에 실수배 (R,G,B 모두 동일한 값)
+                updateGrayscaleMatrix('matrixR2', startX, startY, r);
+                updateGrayscaleMatrix('matrixG2', startX, startY, r);
+                updateGrayscaleMatrix('matrixB2', startX, startY, r);
+            } else {
+                updateMatrix('matrixR2', startX, startY, 0, r);
+                updateMatrix('matrixG2', startX, startY, 1, g);
+                updateMatrix('matrixB2', startX, startY, 2, b);
+            }
+        }
+
+        function updateMatrix(tableId, startX, startY, channelIndex, multiplier) {
+            const table = document.getElementById(tableId);
+            const centerRow = Math.floor(boxSize / 2);
+            const centerCol = Math.floor(boxSize / 2);
+
+            let html = '';
+            for (let y = 0; y < boxSize; y++) {
+                html += '<tr>';
+                for (let x = 0; x < boxSize; x++) {
+                    const pixelX = startX + x;
+                    const pixelY = startY + y;
+                    const index = (pixelY * originalImageData.width + pixelX) * 4 + channelIndex;
+                    const value = Math.min(255, Math.max(0, Math.round(originalImageData.data[index] * multiplier)));
+                    const isCenter = (y === centerRow && x === centerCol);
+                    html += `<td class="${isCenter ? 'center' : ''}">${value}</td>`;
+                }
+                html += '</tr>';
+            }
+            table.innerHTML = html;
+        }
+
+        function updateGrayscaleMatrix(tableId, startX, startY, multiplier) {
+            const table = document.getElementById(tableId);
+            const centerRow = Math.floor(boxSize / 2);
+            const centerCol = Math.floor(boxSize / 2);
+
+            let html = '';
+            for (let y = 0; y < boxSize; y++) {
+                html += '<tr>';
+                for (let x = 0; x < boxSize; x++) {
+                    const pixelX = startX + x;
+                    const pixelY = startY + y;
+                    const index = (pixelY * originalImageData.width + pixelX) * 4;
+                    const origR = originalImageData.data[index];
+                    const origG = originalImageData.data[index + 1];
+                    const origB = originalImageData.data[index + 2];
+                    const avg = Math.round((origR + origG + origB) / 3 * multiplier);
+                    const value = Math.min(255, Math.max(0, avg));
+                    const isCenter = (y === centerRow && x === centerCol);
+                    html += `<td class="${isCenter ? 'center' : ''}">${value}</td>`;
+                }
+                html += '</tr>';
+            }
+            table.innerHTML = html;
+        }
+
+        function clearMatrices() {
+            ['matrixR', 'matrixG', 'matrixB', 'matrixR2', 'matrixG2', 'matrixB2'].forEach(id => {
+                document.getElementById(id).innerHTML = '';
+            });
+        }
+
+        // 클릭 이벤트
+        [originalCanvas, transformedCanvas].forEach(canvas => {
+            canvas.addEventListener('click', function(e) {
+                if (!originalImageData) return;
+
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+
+                selectedX = Math.floor((e.clientX - rect.left) * scaleX);
+                selectedY = Math.floor((e.clientY - rect.top) * scaleY);
+
+                updateMatrices();
+                updateSelectionBoxes();
+            });
+        });
+
+        // 선택 박스
+        function updateSelectionBoxes() {
+            if (!originalImageData || selectedX === null) return;
+
+            const startX = Math.max(0, Math.min(originalImageData.width - boxSize, selectedX - Math.floor(boxSize / 2)));
+            const startY = Math.max(0, Math.min(originalImageData.height - boxSize, selectedY - Math.floor(boxSize / 2)));
+
+            [
+                { canvas: originalCanvas, box: 'selectionBox1' },
+                { canvas: transformedCanvas, box: 'selectionBox2' }
+            ].forEach(({ canvas, box }) => {
+                const canvasRect = canvas.getBoundingClientRect();
+                const wrapperRect = canvas.parentElement.getBoundingClientRect();
+                
+                const offsetX = canvasRect.left - wrapperRect.left;
+                const offsetY = canvasRect.top - wrapperRect.top;
+                
+                const scaleX = canvasRect.width / canvas.width;
+                const scaleY = canvasRect.height / canvas.height;
+
+                const boxEl = document.getElementById(box);
+                boxEl.style.display = 'block';
+                boxEl.style.left = (offsetX + startX * scaleX) + 'px';
+                boxEl.style.top = (offsetY + startY * scaleY) + 'px';
+                boxEl.style.width = (boxSize * scaleX) + 'px';
+                boxEl.style.height = (boxSize * scaleY) + 'px';
+            });
+        }
+
+        // 초기화
+        updateSliderValues();
+        updateLabels();
+    </script>
+</body>
+</html>
