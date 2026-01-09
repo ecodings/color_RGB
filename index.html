@@ -587,6 +587,7 @@
                     sliderB.value = this.value;
                 }
                 updateSliderValues();
+                updateLabels();  // 이 줄 추가
                 updateAll();
             });
         });
@@ -611,6 +612,9 @@
         // 라벨 업데이트
         function updateLabels() {
             const isGrayscale = grayscaleCheck.checked;
+            const r = (sliderR.value / 100).toFixed(1);
+            const g = (sliderG.value / 100).toFixed(1);
+            const b = (sliderB.value / 100).toFixed(1);
             
             if (isGrayscale) {
                 document.getElementById('resultTitle').textContent = '🔲 흑백 이미지 ((R+G+B)/3 × k)';
@@ -620,10 +624,10 @@
                 document.getElementById('resultChannelTitle').textContent = '📊 변환된 채널 (실수배 적용)';
             }
             
-            // 라벨은 항상 RGB 색상 유지
-            document.getElementById('labelR2').textContent = 'rR';
-            document.getElementById('labelG2').textContent = 'gG';
-            document.getElementById('labelB2').textContent = 'bB';
+            // 라벨에 실수배 값 표시
+            document.getElementById('labelR2').textContent = r + 'R';
+            document.getElementById('labelG2').textContent = g + 'G';
+            document.getElementById('labelB2').textContent = b + 'B';
             
             document.getElementById('labelR2').className = 'channel-label red';
             document.getElementById('labelG2').className = 'channel-label green';
