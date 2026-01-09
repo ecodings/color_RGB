@@ -593,10 +593,10 @@
 
         grayscaleCheck.addEventListener('change', function() {
             if (this.checked) {
-                // 흑백 모드: 슬라이더를 1/3로 설정
-                sliderR.value = 33;
-                sliderG.value = 33;
-                sliderB.value = 33;
+                // 흑백 모드: 슬라이더를 1.0로 설정
+                sliderR.value = 100;
+                sliderG.value = 100;
+                sliderB.value = 100;
             } else {
                 // 컬러 모드: 슬라이더를 1.0으로 복원
                 sliderR.value = 100;
